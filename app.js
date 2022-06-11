@@ -1,4 +1,5 @@
 const bodyParser = require("body-parser");
+const axios = require("axios");
 const { Decimal128 } = require("bson");
 var express = require("express");
 require("dotenv").config();
@@ -59,11 +60,21 @@ app.get("/user/:id", (req, res) => {
   User.find({ walletId: req.params.id }, (err, data) => {
     if (err) res.sendStatus(400);
     if (data.length == 0) {
-      let newUser = new User({ walletId: req.params.id, rides: [] });
-      newUser.save((err1, data1) => {
-        if (err1) res.sendStatus(400);
-        else res.sendStatus(200);
-      });
+      let isValid = true;
+      axios
+        .get("https://api.elrond.com/accounts/" + req.params.id)
+        .then((resq) => {
+          isValid = resq.status == 200;
+        });
+      if (isValid) {
+        let newUser = new User({ walletId: req.params.id, rides: [] });
+        newUser.save((err1, data1) => {
+          if (err1) res.sendStatus(400);
+          else res.sendStatus(200);
+        });
+      } else {
+        res.sendStatus(400);
+      }
     } else res.send(data);
   });
 });
